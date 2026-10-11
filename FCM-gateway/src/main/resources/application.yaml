@@ -1,0 +1,164 @@
+spring:
+  application:
+    name: FCM-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # ===== 开发阶段跨域：允许任意来源（IP/域名/端口），由网关统一添加 CORS 响应头 =====
+          # 生产环境应把 allowed-origin-patterns 收窄为具体前端域名；
+          # allow-credentials 与 origin-patterns "*" 组合时按请求 Origin 回显（不可用 allowed-origins "*"）
+          globalcors:
+            # 未被路由谓词匹配的请求也应用 CORS（如部分 OPTIONS 预检场景）
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowed-origin-patterns: "*"
+                allowed-methods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - PATCH
+                  - OPTIONS
+                  - HEAD
+                allowed-headers: "*"
+                allow-credentials: true
+                max-age: 3600
+          routes:
+            # ===== 商品域 =====
+            - id: brand-microservice
+              uri: lb://FCM-brand-microservice
+              #留着写断言和过滤器
+              predicates:
+                - Path=/api/brands/**
+            - id: category-microservice
+              uri: lb://FCM-category-microservice
+              predicates:
+                - Path=/api/categories/**
+            - id: good-microservice
+              uri: lb://FCM-good-microservice
+              predicates:
+                - Path=/api/goods/**
+            # ===== 会员域 =====
+            - id: member-microservice
+              uri: lb://FCM-member-microservice
+              predicates:
+                - Path=/api/members/**
+            - id: member-address-microservice
+              uri: lb://FCM-member-address-microservice
+              predicates:
+                - Path=/api/member-addresses/**
+            # ===== 交易域 =====
+            - id: cart-microservice
+              uri: lb://FCM-cart-microservice
+              predicates:
+                - Path=/api/carts/**
+            - id: collect-microservice
+              uri: lb://FCM-collect-microservice
+              predicates:
+                - Path=/api/collects/**
+            - id: notice-microservice
+              # 会员通知与收藏同属 FCM-collect-microservice（站内信：收藏商品降价/进入秒杀触达）
+              uri: lb://FCM-collect-microservice
+              predicates:
+                - Path=/api/notices/**
+            - id: order-microservice
+              uri: lb://FCM-order-microservice
+              predicates:
+                - Path=/api/orders/**
+            # ===== 权限域 =====
+            - id: user-microservice
+              uri: lb://FCM-user-microservice
+              predicates:
+                - Path=/api/users/**
+            - id: rbac-microservice
+              uri: lb://FCM-rbac-microservice
+              predicates:
+                # Rbac 服务包含多个子资源路径，一个路由统一转发
+                - Path=/api/groups/**,/api/menus/**,/api/perms/**,/api/rbac/**,/api/resources/**,/api/roles/**
+            # ===== 区域 =====
+            - id: region-microservice
+              uri: lb://FCM-region-microservice
+              predicates:
+                - Path=/api/regions/**
+            # ===== 秒杀 =====
+            - id: seckill-microservice
+              uri: lb://FCM-seckill-microservice
+              predicates:
+                - Path=/api/seckills/**
+            # ===== 文件上传 =====
+            - id: upload-microservice
+              uri: lb://FCM-upload-microservice
+              predicates:
+                - Path=/upload/**
+          discovery:
+            locator:
+              enabled: true
+              lowerCaseServiceId: true
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        username: nacos
+        password: 123456
+        namespace: ccec72ba-fee4-4a12-b8e4-f094a8a7a87e
+        group: FlashChoice-Mart
+        ip: localhost   # 本机开发：避免切换网络后 IP 变动
+        port: 8888
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      timeout: 3s
+      # Redis 访问密码（redis.conf 中 requirepass）；不配置会因 NOAUTH 导致黑名单失效
+      password: petsphere123
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+
+server:
+  port: 8888
+
+# ===== JWT 双 Token 认证（与 user-api / member-api 签发密钥保持一致；建议后续统一维护到 Nacos common.yaml） =====
+fcm:
+  jwt:
+    # HS256 签名密钥（≥32 字节；三处签发/校验方必须一致）
+    secret: FlashChoice-Mart-Jwt-Secret-2026-HS256-Key
+    issuer: flashchoice-mart
+    admin:
+      access-ttl-minutes: 720        # Access Token 有效期：12 小时
+      refresh-ttl-minutes: 10080     # Refresh Token 有效期：7 天
+    member:
+      access-ttl-minutes: 10080     # Access Token 有效期：7 天
+      refresh-ttl-minutes: 43200     # Refresh Token 有效期：30 天
+  auth:
+    # 无需登录的公开接口（精确路径或 ant 通配，任意方法）
+    whitelist:
+      - /api/users/login
+      - /api/users/captcha
+      - /api/users/refresh
+      - /api/members/login
+      - /api/members/register
+      - /api/members/captcha
+      - /api/members/refresh
+    # 游客可 GET 的公开查询前缀（商品/分类/品牌/地区/秒杀浏览/文件读取；同域写接口仍需登录）
+    public-get-prefixes:
+      - /api/brands
+      - /api/categories
+      - /api/goods
+      - /api/regions
+      - /api/seckills
+      - /upload
+  gateway:
+    # 内部接口（仅供服务间 Feign 直连调用）：网关层直接拒绝外部访问（403）
+    internal-paths:
+      - "PUT /api/goods/stock/deduct"
+      - "PUT /api/goods/stock/restore"
+      - "PUT /api/orders/close-timeout/**"
+      - "POST /api/orders/internal/seckill"
+      - "PUT /api/seckills/internal/release/**"
+      - "POST /api/rbac/check"
+      - "DELETE /api/rbac/users/*/groups"
+      - "POST /api/notices/internal/**"

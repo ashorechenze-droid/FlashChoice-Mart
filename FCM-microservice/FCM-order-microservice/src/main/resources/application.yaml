@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: FCM-order-microservice
+  config:
+    import: nacos:common.yaml?group=FlashChoice-Mart&refreshEnabled=true
+  # ===== 激活的环境（用于拼接 Data ID） =====
+  profiles:
+    active: prod
+
+  cloud:
+    nacos:
+      config:
+        server-addr: 127.0.0.1:8848
+        username: nacos
+        password: 123456
+        namespace: ccec72ba-fee4-4a12-b8e4-f094a8a7a87e   # 如果配置在指定命名空间，需填写
+        group: FlashChoice-Mart                            # 如果配置不在 DEFAULT_GROUP，需指定
+
+      discovery:
+        server-addr: 127.0.0.1:8848
+        # 服务名（可选，默认取 spring.application.name）
+        # 是否注册到 Nacos（默认 true，取消下面注释可关闭）
+        username: nacos
+        password: 123456
+        register-enabled: true
+        group: FlashChoice-Mart
+        namespace: ccec72ba-fee4-4a12-b8e4-f094a8a7a87e
+        ip: localhost   # 本机开发：避免切换网络后 IP 变动
+        port: 20008
+    # Feign 调用超时（毫秒）：远程服务不可用/慢响应时快速失败，由业务层降级或提示重试
+    # （非幂等接口不配自动重试，避免重复扣减/下单，容错由业务补偿兜底）
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 5000
+
+  # ===== RabbitMQ：超时关单延时消息（TTL + 死信队列，本地未部署时下单/定时关单不受影响） =====
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
+    # MQ 不可用时限制连接等待时长，消息发送失败由定时扫描兜底
+    connection-timeout: 2s
+    listener:
+      simple:
+        # 消费失败重试 3 次（2s/4s 递增），仍失败则死信到 order.close.dlx.queue
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 2s
+          multiplier: 2
+          max-interval: 10s
+
+server:
+  port: 20008

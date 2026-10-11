@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: FCM-upload-microservice
+  config:
+    import: nacos:common.yaml?group=FlashChoice-Mart&refreshEnabled=true
+  # ===== 激活的环境（用于拼接 Data ID） =====
+  profiles:
+    active: prod
+  # 上传大小限制：与 upload.max-size 保持一致（容器层提前拦截超大请求）
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+  cloud:
+    nacos:
+      config:
+        server-addr: 127.0.0.1:8848
+        username: nacos
+        password: 123456
+        namespace: ccec72ba-fee4-4a12-b8e4-f094a8a7a87e   # 如果配置在指定命名空间，需填写
+        group: FlashChoice-Mart                            # 如果配置不在 DEFAULT_GROUP，需指定
+
+      discovery:
+        server-addr: 127.0.0.1:8848
+        # 服务名（可选，默认取 spring.application.name）
+        # 是否注册到 Nacos（默认 true，取消下面注释可关闭）
+        username: nacos
+        password: 123456
+        register-enabled: true
+        group: FlashChoice-Mart
+        namespace: ccec72ba-fee4-4a12-b8e4-f094a8a7a87e
+        ip: localhost   # 本机开发：避免切换网络后 IP 变动
+        port: 20012
+
+# ===== 文件上传（upload-api） =====
+upload:
+  # 上传文件存储目录（本机开发默认用户主目录下 fcm-upload；生产建议独立数据盘目录）
+  location: ${user.home}/fcm-upload
+  # 单文件大小上限（字节，5MB）
+  max-size: 5242880
+  # 扩展名白名单（小写，逗号分隔）
+  allowed-extensions: jpg,jpeg,png,gif,webp,bmp
+
+server:
+  port: 20012

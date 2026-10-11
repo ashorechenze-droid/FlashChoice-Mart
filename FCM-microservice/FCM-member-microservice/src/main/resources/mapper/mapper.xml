@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.fcmmembermicroservice.mapper.MemberMapper">
+    <!-- 通用查询列（不含 password，避免哈希外泄） -->
+    <sql id="Base_Select">
+        select id,
+               account,
+               enabled,
+               name,
+               pinyin,
+               pinyin_untoned,
+               sex,
+               birthday,
+               height,
+               weight,
+               iq,
+               qq,
+               wechat,
+               phone,
+               email,
+               native_place_id,
+               card_id,
+               wedlock,
+               political_orientation,
+               address_id,
+               address_detail,
+               race,
+               religion,
+               nationality,
+               portrait,
+               description,
+               extra_info,
+               last_login_time,
+               last_login_ip,
+               version,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from member
+    </sql>
+    <!-- 会员分页：关键字匹配账号/姓名/手机号 -->
+    <select id="findAll" resultType="com.example.fcmspi.model.MemberEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="keyword!=null and keyword!=''">
+                and (account like concat('%', #{keyword}, '%')
+                    or name like concat('%', #{keyword}, '%')
+                    or phone like concat('%', #{keyword}, '%'))
+            </if>
+            <if test="enabled != null">
+                and enabled = #{enabled}
+            </if>
+        </where>
+        order by id desc
+    </select>
+    <select id="findById" resultType="com.example.fcmspi.model.MemberEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+    <!-- 含密码查询（登录/改密专用） -->
+    <select id="findByIdWithPassword" resultType="com.example.fcmspi.model.MemberEntity">
+        select id, account, password
+        from member
+        where id = #{id}
+    </select>
+    <select id="findByAccountWithPassword" resultType="com.example.fcmspi.model.MemberEntity">
+        select id, account, password, enabled
+        from member
+        where account = #{account}
+    </select>
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into member (account, password, enabled, name, pinyin, pinyin_untoned, sex, birthday,
+                            height, weight, iq, qq, wechat, phone, email, native_place_id, card_id,
+                            wedlock, political_orientation, address_id, address_detail, race, religion,
+                            nationality, portrait, description, extra_info, version,
+                            created_time, updated_time, created_by, updated_by)
+        values (#{account}, #{password}, #{enabled}, #{name}, #{pinyin}, #{pinyinUntoned}, #{sex}, #{birthday},
+                #{height}, #{weight}, #{iq}, #{qq}, #{wechat}, #{phone}, #{email}, #{nativePlaceId}, #{cardId},
+                #{wedlock}, #{politicalOrientation}, #{addressId}, #{addressDetail}, #{race}, #{religion},
+                #{nationality}, #{portrait}, #{description}, #{extraInfo}, #{version},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+    <!-- 乐观锁更新：version 参与条件并自增 -->
+    <update id="update">
+        update member
+        <set>
+            version = version + 1,
+            <if test="name!=null and name!=''">name = #{name},</if>
+            <if test="pinyin!=null and pinyin!=''">pinyin = #{pinyin},</if>
+            <if test="pinyinUntoned!=null and pinyinUntoned!=''">pinyin_untoned = #{pinyinUntoned},</if>
+            <if test="sex!=null and sex!=''">sex = #{sex},</if>
+            <if test="birthday!=null and birthday!=''">birthday = #{birthday},</if>
+            <if test="height!=null">height = #{height},</if>
+            <if test="weight!=null">weight = #{weight},</if>
+            <if test="iq!=null">iq = #{iq},</if>
+            <if test="qq!=null and qq!=''">qq = #{qq},</if>
+            <if test="wechat!=null and wechat!=''">wechat = #{wechat},</if>
+            <if test="phone!=null and phone!=''">phone = #{phone},</if>
+            <if test="email!=null and email!=''">email = #{email},</if>
+            <if test="nativePlaceId!=null">native_place_id = #{nativePlaceId},</if>
+            <if test="cardId!=null and cardId!=''">card_id = #{cardId},</if>
+            <if test="wedlock!=null and wedlock!=''">wedlock = #{wedlock},</if>
+            <if test="politicalOrientation!=null and politicalOrientation!=''">political_orientation = #{politicalOrientation},</if>
+            <if test="addressId!=null">address_id = #{addressId},</if>
+            <if test="addressDetail!=null and addressDetail!=''">address_detail = #{addressDetail},</if>
+            <if test="race!=null and race!=''">race = #{race},</if>
+            <if test="religion!=null and religion!=''">religion = #{religion},</if>
+            <if test="nationality!=null and nationality!=''">nationality = #{nationality},</if>
+            <if test="portrait!=null and portrait!=''">portrait = #{portrait},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id} and version = #{version}
+    </update>
+    <update id="updateLastLogin">
+        update member
+        <set>
+            <if test="lastLoginTime!=null">last_login_time = #{lastLoginTime},</if>
+            <if test="lastLoginIp!=null">last_login_ip = #{lastLoginIp},</if>
+        </set>
+        where id = #{id}
+    </update>
+    <update id="updatePassword">
+        update member
+        set password = #{password}
+        where id = #{id}
+    </update>
+    <update id="updateEnabled">
+        update member
+        set enabled = #{enabled}
+        where id = #{id}
+    </update>
+</mapper>

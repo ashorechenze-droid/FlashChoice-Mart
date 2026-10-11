@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.fcmseckillmicroservice.mapper.SeckillMapper">
+
+    <!-- ==================== 秒杀活动 ==================== -->
+
+    <sql id="Base_Select">
+        select id,
+               name,
+               enabled,
+               start_time,
+               end_time,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from seckill
+    </sql>
+
+    <!-- 后台分页/条件查询：keyword 匹配名称，enabled 精确过滤 -->
+    <select id="findAll" resultType="com.example.fcmspi.model.SeckillEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="name!=null and name!=''">
+                and `name` like concat('%', #{name}, '%')
+            </if>
+            <if test="keyword!=null and keyword!=''">
+                and `name` like concat('%', #{keyword}, '%')
+            </if>
+            <if test="enabled!=null">
+                and enabled = #{enabled}
+            </if>
+        </where>
+        order by id desc
+    </select>
+
+    <!-- 前台活动列表：启用且未结束（进行中在前，其次按开始时间升序） -->
+    <select id="findActive" resultType="com.example.fcmspi.model.SeckillEntity">
+        <include refid="Base_Select"/>
+        where enabled = 1
+          and end_time &gt;= now()
+        order by (start_time &lt;= now()) desc, start_time asc
+    </select>
+
+    <select id="findById" resultType="com.example.fcmspi.model.SeckillEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into seckill (name, enabled, start_time, end_time, description,
+                             created_time, updated_time, created_by, updated_by)
+        values (#{name}, #{enabled}, #{startTime}, #{endTime}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        update seckill
+        <set>
+            <if test="name!=null and name!=''">`name` = #{name},</if>
+            <if test="enabled!=null">enabled = #{enabled},</if>
+            <if test="startTime!=null and startTime!=''">start_time = #{startTime},</if>
+            <if test="endTime!=null and endTime!=''">end_time = #{endTime},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <update id="updateEnabled">
+        update seckill
+        set enabled = #{enabled}
+        where id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        delete from seckill
+        where id = #{id}
+    </delete>
+
+    <!-- ==================== 秒杀活动商品 ==================== -->
+
+    <sql id="Good_Select">
+        select id,
+               seckill_id,
+               good_id,
+               seckill_price,
+               stock,
+               sold,
+               limit_per_user,
+               description
+        from seckill_good
+    </sql>
+
+    <!-- 活动商品列表（含秒杀价/库存/已售，剩余库存 = stock - sold；商品信息由 good-api Feign 组装） -->
+    <select id="findGoodsBySeckillId" resultType="com.example.fcmspi.model.SeckillGoodEntity">
+        <include refid="Good_Select"/>
+        where seckill_id = #{seckillId}
+        order by id desc
+    </select>
+
+    <select id="findGoodById" resultType="com.example.fcmspi.model.SeckillGoodEntity">
+        <include refid="Good_Select"/>
+        where id = #{id}
+    </select>
+    <select id="lockGood" resultType="com.example.fcmspi.model.SeckillGoodEntity">
+        <include refid="Good_Select"/>
+        where id = #{id} for update
+    </select>
+
+    <select id="findGoodBySeckillAndGood" resultType="com.example.fcmspi.model.SeckillGoodEntity">
+        <include refid="Good_Select"/>
+        where seckill_id = #{seckillId}
+          and good_id = #{goodId}
+    </select>
+
+    <!-- seckill_good 表无审计列，仅插入业务字段 -->
+    <insert id="saveGood" useGeneratedKeys="true" keyProperty="id">
+        insert into seckill_good (seckill_id, good_id, seckill_price, stock, sold, limit_per_user, description)
+        values (#{seckillId}, #{goodId}, #{seckillPrice}, #{stock}, #{sold}, #{limitPerUser}, #{description})
+    </insert>
+
+    <!-- 只允许调整价格/库存/已售/限购/说明，关联关系如需变更请删除后重建 -->
+    <update id="updateGood">
+        update seckill_good
+        <set>
+            <if test="seckillPrice!=null">seckill_price = #{seckillPrice},</if>
+            <if test="stock!=null">stock = #{stock},</if>
+            <if test="sold!=null">sold = #{sold},</if>
+            <if test="limitPerUser!=null">limit_per_user = #{limitPerUser},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteGoodById">
+        delete from seckill_good
+        where id = #{id}
+    </delete>
+
+    <delete id="deleteGoodsBySeckillId">
+        delete from seckill_good
+        where seckill_id = #{seckillId}
+    </delete>
+    <update id="reserveStock">
+        update seckill_good set stock = stock - 1, sold = sold + 1
+        where id = #{id} and stock &gt; 0
+    </update>
+    <update id="restoreStock">
+        update seckill_good set stock = stock + 1, sold = sold - 1
+        where id = #{id} and sold &gt; 0
+    </update>
+    <insert id="insertGrab">
+        insert into seckill_grab (seckill_no, seckill_good_id, member_id, member_account, addr_id, seckill_price, status)
+        values (#{seckillNo}, #{seckillGoodId}, #{memberId}, #{memberAccount}, #{addrId}, #{seckillPrice}, #{status})
+    </insert>
+    <select id="findGrab" resultType="com.example.fcmspi.model.SeckillGrabEntity">
+        select seckill_no, seckill_good_id, member_id, member_account, addr_id, seckill_price, status, order_no
+        from seckill_grab where seckill_no = #{seckillNo}
+    </select>
+    <select id="lockGrab" resultType="com.example.fcmspi.model.SeckillGrabEntity">
+        select seckill_no, seckill_good_id, member_id, member_account, addr_id, seckill_price, status, order_no
+        from seckill_grab where seckill_no = #{seckillNo} for update
+    </select>
+    <select id="countMemberGrabs" resultType="int">
+        select count(*) from seckill_grab
+        where member_id = #{memberId} and seckill_good_id = #{seckillGoodId}
+          and seckill_no != #{seckillNo}
+          and status in ('PROCESSING', 'SUCCESS')
+    </select>
+    <update id="markProcessing">
+        update seckill_grab set status = 'PROCESSING'
+        where seckill_no = #{seckillNo} and status = 'PENDING'
+    </update>
+    <update id="markSuccess">
+        update seckill_grab set status = 'SUCCESS', order_no = #{orderNo}
+        where seckill_no = #{seckillNo} and status = 'PROCESSING'
+    </update>
+    <update id="markFailed">
+        update seckill_grab set status = 'FAILED'
+        where seckill_no = #{seckillNo} and status in ('PENDING', 'PROCESSING')
+    </update>
+    <update id="markCancelled">
+        update seckill_grab set status = 'CANCELLED'
+        where seckill_no = #{seckillNo} and status = 'SUCCESS'
+    </update>
+    <select id="findByOrderNo" resultType="com.example.fcmspi.model.SeckillGrabEntity">
+        select seckill_no, seckill_good_id, member_id, member_account, addr_id, seckill_price, status, order_no
+        from seckill_grab where order_no = #{orderNo} limit 1
+    </select>
+    <select id="findCancelledSuccessGrabs" resultType="java.lang.String">
+        select g.seckill_no from seckill_grab g
+        join `order` o on o.seckill_no = g.seckill_no
+        where g.status = 'SUCCESS' and o.status = '已取消'
+        limit 100
+    </select>
+    <select id="findRetryableGrabs" resultType="java.lang.String">
+        select seckill_no from seckill_grab
+        where status in ('PENDING', 'PROCESSING')
+          and updated_time &lt; DATE_SUB(now(), INTERVAL 30 SECOND)
+        order by updated_time asc limit 100
+    </select>
+    <update id="touchRetry">
+        update seckill_grab set updated_time = now()
+        where seckill_no = #{seckillNo} and status in ('PENDING', 'PROCESSING')
+    </update>
+</mapper>

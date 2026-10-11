@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.fcmcollectmicroservice.mapper.NoticeMapper">
+    <!-- 通用查询列（notice 无审计字段，仅 created_time 参与展示） -->
+    <sql id="Base_Select">
+        select id,
+               member_id,
+               type,
+               good_id,
+               title,
+               content,
+               is_read,
+               created_time
+        from notice
+    </sql>
+    <select id="findByMemberId" resultType="com.example.fcmspi.model.NoticeEntity">
+        <include refid="Base_Select"/>
+        where member_id = #{memberId}
+        <if test="unreadOnly">
+            and is_read = 0
+        </if>
+        order by id desc
+    </select>
+    <select id="countUnread" resultType="long">
+        select count(*)
+        from notice
+        where member_id = #{memberId}
+          and is_read = 0
+    </select>
+    <update id="markRead">
+        update notice
+        set is_read = 1
+        where member_id = #{memberId}
+          and id = #{id}
+    </update>
+    <update id="markAllRead">
+        update notice
+        set is_read = 1
+        where member_id = #{memberId}
+          and is_read = 0
+    </update>
+    <insert id="saveBatch">
+        insert into notice (member_id, type, good_id, title, content, is_read, created_time)
+        values
+        <foreach collection="list" item="n" separator=",">
+            (#{n.memberId}, #{n.type}, #{n.goodId}, #{n.title}, #{n.content}, #{n.isRead}, #{n.createdTime})
+        </foreach>
+    </insert>
+</mapper>

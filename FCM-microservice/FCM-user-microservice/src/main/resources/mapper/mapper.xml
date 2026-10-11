@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.fcmusermicroservice.mapper.UserMapper">
+    <!-- 通用查询列（不含 password，避免哈希外泄；user 为保留字，表名须反引号） -->
+    <sql id="Base_Select">
+        select id,
+               username,
+               avatar_url,
+               enabled,
+               status,
+               locked,
+               user_expire_time,
+               credential_expire_time,
+               login_times,
+               last_login_time,
+               last_login_ip,
+               op_mode,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from `user`
+    </sql>
+    <!-- 后台用户分页：关键字匹配用户名 -->
+    <select id="findAll" resultType="com.example.fcmspi.model.UserEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="keyword!=null and keyword!=''">
+                and username like concat('%', #{keyword}, '%')
+            </if>
+            <if test="enabled != null">
+                and enabled = #{enabled}
+            </if>
+        </where>
+        order by id desc
+    </select>
+    <select id="findById" resultType="com.example.fcmspi.model.UserEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+    <!-- 含密码查询（登录/重置校验专用） -->
+    <select id="findByIdWithPassword" resultType="com.example.fcmspi.model.UserEntity">
+        select id, username, password
+        from `user`
+        where id = #{id}
+    </select>
+    <select id="findByUsernameWithPassword" resultType="com.example.fcmspi.model.UserEntity">
+        select id, username, password, enabled, locked, user_expire_time, credential_expire_time
+        from `user`
+        where username = #{username}
+    </select>
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into `user` (username, password, avatar_url, enabled, status, locked,
+                            user_expire_time, credential_expire_time, login_times,
+                            last_login_time, last_login_ip, op_mode, description,
+                            created_time, updated_time, created_by, updated_by)
+        values (#{username}, #{password}, #{avatarUrl}, #{enabled}, #{status}, #{locked},
+                #{userExpireTime}, #{credentialExpireTime}, #{loginTimes},
+                #{lastLoginTime}, #{lastLoginIp}, #{opMode}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+    <update id="update">
+        update `user`
+        <set>
+            <if test="avatarUrl!=null and avatarUrl!=''">avatar_url = #{avatarUrl},</if>
+            <if test="status!=null">status = #{status},</if>
+            <if test="locked!=null">locked = #{locked},</if>
+            <if test="userExpireTime!=null and userExpireTime!=''">user_expire_time = #{userExpireTime},</if>
+            <if test="credentialExpireTime!=null and credentialExpireTime!=''">credential_expire_time = #{credentialExpireTime},</if>
+            <if test="opMode!=null">op_mode = #{opMode},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+    <update id="updateLoginInfo">
+        update `user`
+        set login_times = login_times + 1,
+            last_login_time = COALESCE(#{lastLoginTime}, last_login_time),
+            last_login_ip = COALESCE(#{lastLoginIp}, last_login_ip)
+        where id = #{id}
+    </update>
+    <update id="updatePassword">
+        update `user`
+        set password = #{password}
+        where id = #{id}
+    </update>
+    <update id="updateEnabled">
+        update `user`
+        set enabled = #{enabled}
+        where id = #{id}
+    </update>
+    <delete id="deleteByIds">
+        delete from `user`
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

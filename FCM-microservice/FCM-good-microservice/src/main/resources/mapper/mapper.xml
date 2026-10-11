@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.fcmgoodmicroservice.mapper.GoodMapper">
+    <!-- 通用查询列 -->
+    <sql id="Base_Select">
+        select id,
+               spu_no,
+               name,
+               alias,
+               summary,
+               category_id,
+               brand_id,
+               mark_price,
+               price,
+               qty,
+               pic,
+               pic2,
+               detail_pics,
+               detail,
+               is_take_down,
+               is_hot,
+               is_del,
+               is_seckill,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from good
+    </sql>
+    <!-- 商品分页检索：关键字/分类/品牌/价格区间/热销/上下架/逻辑删除，排序见 GoodSearchBean.sort -->
+    <select id="findAll" resultType="com.example.fcmspi.model.GoodEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="keyword!=null and keyword!=''">
+                and (name like concat('%', #{keyword}, '%')
+                    or alias like concat('%', #{keyword}, '%')
+                    or spu_no like concat('%', #{keyword}, '%'))
+            </if>
+            <if test="categoryIdList != null and categoryIdList.size() > 0">
+                and category_id in
+                <foreach collection="categoryIdList" item="cid" separator="," open="(" close=")">
+                    #{cid}
+                </foreach>
+            </if>
+            <if test="(categoryIdList == null or categoryIdList.size() == 0) and categoryId != null">
+                and category_id = #{categoryId}
+            </if>
+            <if test="brandId != null">
+                and brand_id = #{brandId}
+            </if>
+            <if test="priceLow != null">
+                and price &gt;= #{priceLow}
+            </if>
+            <if test="priceHigh != null">
+                and price &lt;= #{priceHigh}
+            </if>
+            <if test="isTakeDown != null">
+                and is_take_down = #{isTakeDown}
+            </if>
+            <if test="isHot != null">
+                and is_hot = #{isHot}
+            </if>
+            <if test="isDel != null">
+                and is_del = #{isDel}
+            </if>
+            <if test="isSeckill != null">
+                and is_seckill = #{isSeckill}
+            </if>
+        </where>
+        <choose>
+            <when test="sort=='priceAsc'">
+                order by price asc, id desc
+            </when>
+            <when test="sort=='priceDesc'">
+                order by price desc, id desc
+            </when>
+            <when test="sort=='hot'">
+                order by is_hot desc, id desc
+            </when>
+            <otherwise>
+                order by id desc
+            </otherwise>
+        </choose>
+    </select>
+    <select id="findById" resultType="com.example.fcmspi.model.GoodEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+    <select id="findByIds" resultType="com.example.fcmspi.model.GoodEntity">
+        <include refid="Base_Select"/>
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </select>
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into good (spu_no, name, alias, summary, category_id, brand_id, mark_price, price,
+                          qty, pic, pic2, detail_pics, detail,
+                          is_take_down, is_hot, is_del, is_seckill, description,
+                          created_time, updated_time, created_by, updated_by)
+        values (#{spuNo}, #{name}, #{alias}, #{summary}, #{categoryId}, #{brandId}, #{markPrice}, #{price},
+                #{qty}, #{pic}, #{pic2}, #{detailPics}, #{detail},
+                #{isTakeDown}, #{isHot}, #{isDel}, #{isSeckill}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+    <update id="update">
+        update good
+        <set>
+            <if test="spuNo!=null and spuNo!=''">spu_no = #{spuNo},</if>
+            <if test="name!=null and name!=''">name = #{name},</if>
+            <if test="alias!=null and alias!=''">alias = #{alias},</if>
+            <if test="summary!=null and summary!=''">summary = #{summary},</if>
+            <if test="categoryId!=null">category_id = #{categoryId},</if>
+            <if test="brandId!=null">brand_id = #{brandId},</if>
+            <if test="markPrice!=null">mark_price = #{markPrice},</if>
+            <if test="price!=null">price = #{price},</if>
+            <if test="qty!=null">qty = #{qty},</if>
+            <if test="pic!=null and pic!=''">pic = #{pic},</if>
+            <if test="pic2!=null and pic2!=''">pic2 = #{pic2},</if>
+            <if test="detailPics!=null and detailPics!=''">detail_pics = #{detailPics},</if>
+            <if test="detail!=null and detail!=''">detail = #{detail},</if>
+            <if test="isTakeDown!=null">is_take_down = #{isTakeDown},</if>
+            <if test="isHot!=null">is_hot = #{isHot},</if>
+            <if test="isDel!=null">is_del = #{isDel},</if>
+            <if test="isSeckill!=null">is_seckill = #{isSeckill},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+    <update id="updateTakeDown">
+        update good
+        set is_take_down = #{isTakeDown}
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </update>
+    <update id="deleteByIds">
+        update good
+        set is_del = 1
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </update>
+    <!-- 条件扣减库存：在售且剩余量足够才生效（下单链路，影响 0 行表示库存不足/已下架，上层整体回滚） -->
+    <update id="deductStock">
+        update good
+        set qty = qty - #{count}
+        where id = #{goodId}
+          and is_del = 0
+          and is_take_down = 0
+          and qty &gt;= #{count}
+    </update>
+    <!-- 回补库存：取消/超时关单回补（不做在售条件，商品不在时影响 0 行由上层跳过） -->
+    <update id="restoreStock">
+        update good
+        set qty = qty + #{count}
+        where id = #{goodId}
+    </update>
+
+    <!-- 引用计数：品牌/分类删除前校验（仅统计未删除商品） -->
+    <select id="countByBrandId" resultType="int">
+        select count(*)
+        from good
+        where brand_id = #{brandId}
+          and is_del = 0
+    </select>
+    <select id="countByCategoryId" resultType="int">
+        select count(*)
+        from good
+        where category_id = #{categoryId}
+          and is_del = 0
+    </select>
+
+    <!-- ===== good_detail_pics ===== -->
+    <select id="findDetailPics" resultType="com.example.fcmspi.model.GoodDetailPicEntity">
+        select id, good_id, url, sort, description
+        from good_detail_pics
+        where good_id = #{goodId}
+        order by sort, id
+    </select>
+    <delete id="deleteDetailPicsByGoodId">
+        delete from good_detail_pics
+        where good_id = #{goodId}
+    </delete>
+    <insert id="saveDetailPics" useGeneratedKeys="true" keyProperty="id">
+        insert into good_detail_pics (good_id, url, sort, description)
+        values
+        <foreach collection="pics" item="pic" separator=",">
+            (#{pic.goodId}, #{pic.url}, #{pic.sort}, #{pic.description})
+        </foreach>
+    </insert>
+</mapper>

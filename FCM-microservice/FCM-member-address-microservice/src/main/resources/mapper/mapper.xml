@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.fcmmemberaddressmicroservice.mapper.MemberAddressMapper">
+    <!-- 通用查询列（member_address 无审计字段） -->
+    <sql id="Base_Select">
+        select id,
+               member_account,
+               receiver,
+               phone,
+               addr_id,
+               addr_detail,
+               is_default
+        from member_address
+    </sql>
+    <select id="findByMemberAccount" resultType="com.example.fcmspi.model.MemberAddressEntity">
+        <include refid="Base_Select"/>
+        where member_account = #{memberAccount}
+        order by is_default desc, id desc
+    </select>
+    <select id="findById" resultType="com.example.fcmspi.model.MemberAddressEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into member_address (member_account, receiver, phone, addr_id, addr_detail, is_default)
+        values (#{memberAccount}, #{receiver}, #{phone}, #{addrId}, #{addrDetail}, #{isDefault})
+    </insert>
+    <update id="update">
+        update member_address
+        <set>
+            <if test="receiver!=null and receiver!=''">receiver = #{receiver},</if>
+            <if test="phone!=null and phone!=''">phone = #{phone},</if>
+            <if test="addrId!=null">addr_id = #{addrId},</if>
+            <if test="addrDetail!=null and addrDetail!=''">addr_detail = #{addrDetail},</if>
+            <if test="isDefault!=null">is_default = #{isDefault},</if>
+        </set>
+        where id = #{id}
+    </update>
+    <delete id="deleteById">
+        delete from member_address
+        where id = #{id}
+    </delete>
+    <update id="clearDefault">
+        update member_address
+        set is_default = 0
+        where member_account = #{memberAccount}
+        <if test="excludeId != null">
+            and id != #{excludeId}
+        </if>
+    </update>
+    <update id="setDefaultById">
+        update member_address
+        set is_default = 1
+        where id = #{id}
+    </update>
+</mapper>

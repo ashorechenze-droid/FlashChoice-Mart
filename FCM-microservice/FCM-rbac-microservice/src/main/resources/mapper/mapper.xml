@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.fcmrbacmicroservice.mapper.RbacMapper">
+    <!-- 5 张主数据表有审计列；4 张关联表（user_group/group_role/role_perm/perm_resource）无审计列 -->
+
+    <!-- ==================== 用户组 t_rbac_group ==================== -->
+    <sql id="Group_Select">
+        select id, name, enabled, description, created_time, created_by, updated_time, updated_by
+        from t_rbac_group
+    </sql>
+    <select id="findAllGroups" resultType="com.example.fcmspi.model.RbacGroupEntity">
+        <include refid="Group_Select"/>
+        order by id
+    </select>
+    <select id="findGroupById" resultType="com.example.fcmspi.model.RbacGroupEntity">
+        <include refid="Group_Select"/>
+        where id = #{id}
+    </select>
+    <insert id="saveGroup" useGeneratedKeys="true" keyProperty="id">
+        insert into t_rbac_group (name, enabled, description, created_time, updated_time, created_by, updated_by)
+        values (#{name}, #{enabled}, #{description}, #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+    <update id="updateGroup">
+        update t_rbac_group
+        <set>
+            <if test="name!=null and name!=''">name = #{name},</if>
+            <if test="enabled!=null">enabled = #{enabled},</if>
+            <if test="description!=null">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+    <delete id="deleteGroupById">
+        delete from t_rbac_group where id = #{id}
+    </delete>
+    <select id="countUserGroupByGroupId" resultType="int">
+        select count(1) from t_rbac_user_group where group_id = #{groupId}
+    </select>
+    <select id="countGroupRoleByGroupId" resultType="int">
+        select count(1) from t_rbac_group_role where group_id = #{groupId}
+    </select>
+
+    <!-- ==================== 角色 t_rbac_role ==================== -->
+    <sql id="Role_Select">
+        select id, name, enabled, description, created_time, created_by, updated_time, updated_by
+        from t_rbac_role
+    </sql>
+    <select id="findAllRoles" resultType="com.example.fcmspi.model.RbacRoleEntity">
+        <include refid="Role_Select"/>
+        order by id
+    </select>
+    <select id="findRoleById" resultType="com.example.fcmspi.model.RbacRoleEntity">
+        <include refid="Role_Select"/>
+        where id = #{id}
+    </select>
+    <insert id="saveRole" useGeneratedKeys="true" keyProperty="id">
+        insert into t_rbac_role (name, enabled, description, created_time, updated_time, created_by, updated_by)
+        values (#{name}, #{enabled}, #{description}, #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+    <update id="updateRole">
+        update t_rbac_role
+        <set>
+            <if test="name!=null and name!=''">name = #{name},</if>
+            <if test="enabled!=null">enabled = #{enabled},</if>
+            <if test="description!=null">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+    <delete id="deleteRoleById">
+        delete from t_rbac_role where id = #{id}
+    </delete>
+    <select id="countGroupRoleByRoleId" resultType="int">
+        select count(1) from t_rbac_group_role where role_id = #{roleId}
+    </select>
+    <select id="countRolePermByRoleId" resultType="int">
+        select count(1) from t_rbac_role_perm where role_id = #{roleId}
+    </select>
+
+    <!-- ==================== 权限 t_rbac_perm ==================== -->
+    <sql id="Perm_Select">
+        select id, name, enabled, description, created_time, created_by, updated_time, updated_by
+        from t_rbac_perm
+    </sql>
+    <select id="findAllPerms" resultType="com.example.fcmspi.model.RbacPermEntity">
+        <include refid="Perm_Select"/>
+        order by id
+    </select>
+    <select id="findPermById" resultType="com.example.fcmspi.model.RbacPermEntity">
+        <include refid="Perm_Select"/>
+        where id = #{id}
+    </select>
+    <insert id="savePerm" useGeneratedKeys="true" keyProperty="id">
+        insert into t_rbac_perm (name, enabled, description, created_time, updated_time, created_by, updated_by)
+        values (#{name}, #{enabled}, #{description}, #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+    <update id="updatePerm">
+        update t_rbac_perm
+        <set>
+            <if test="name!=null and name!=''">name = #{name},</if>
+            <if test="enabled!=null">enabled = #{enabled},</if>
+            <if test="description!=null">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+    <delete id="deletePermById">
+        delete from t_rbac_perm where id = #{id}
+    </delete>
+    <select id="countRolePermByPermId" resultType="int">
+        select count(1) from t_rbac_role_perm where perm_id = #{permId}
+    </select>
+    <select id="countPermResourceByPermId" resultType="int">
+        select count(1) from t_rbac_perm_resource where perm_id = #{permId}
+    </select>
+
+    <!-- ==================== 资源 t_rbac_resource（type：接口/按钮） ==================== -->
+    <sql id="Resource_Select">
+        select id, name, type, value, description, created_time, created_by, updated_time, updated_by
+        from t_rbac_resource
+    </sql>
+    <select id="findAllResources" resultType="com.example.fcmspi.model.RbacResourceEntity">
+        <include refid="Resource_Select"/>
+        <where>
+            <if test="type!=null and type!=''">
+                type = #{type}
+            </if>
+        </where>
+        order by id
+    </select>
+    <select id="findResourceById" resultType="com.example.fcmspi.model.RbacResourceEntity">
+        <include refid="Resource_Select"/>
+        where id = #{id}
+    </select>
+    <insert id="saveResource" useGeneratedKeys="true" keyProperty="id">
+        insert into t_rbac_resource (name, type, value, description, created_time, updated_time, created_by, updated_by)
+        values (#{name}, #{type}, #{value}, #{description}, #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+    <update id="updateResource">
+        update t_rbac_resource
+        <set>
+            <if test="name!=null and name!=''">name = #{name},</if>
+            <if test="type!=null and type!=''">type = #{type},</if>
+            <if test="value!=null and value!=''">value = #{value},</if>
+            <if test="description!=null">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+    <delete id="deleteResourceById">
+        delete from t_rbac_resource where id = #{id}
+    </delete>
+    <select id="countPermResourceByResourceId" resultType="int">
+        select count(1) from t_rbac_perm_resource where resource_id = #{resourceId}
+    </select>
+    <select id="countMenuByResourceId" resultType="int">
+        select count(1) from t_rbac_menu where resource_id = #{resourceId}
+    </select>
+
+    <!-- ==================== 菜单 t_rbac_menu（parent_id 自关联成树） ==================== -->
+    <sql id="Menu_Select">
+        select id, parent_id, resource_id, name, icon, url, sort, description,
+               created_time, created_by, updated_time, updated_by
+        from t_rbac_menu
+    </sql>
+    <select id="findAllMenus" resultType="com.example.fcmspi.model.RbacMenuEntity">
+        <include refid="Menu_Select"/>
+        order by sort asc, id asc
+    </select>
+    <select id="findMenuById" resultType="com.example.fcmspi.model.RbacMenuEntity">
+        <include refid="Menu_Select"/>
+        where id = #{id}
+    </select>
+    <insert id="saveMenu" useGeneratedKeys="true" keyProperty="id">
+        insert into t_rbac_menu (parent_id, resource_id, name, icon, url, sort, description,
+                                 created_time, updated_time, created_by, updated_by)
+        values (#{parentId}, #{resourceId}, #{name}, #{icon}, #{url}, #{sort}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+    <update id="updateMenu">
+        update t_rbac_menu
+        <set>
+            <if test="parentId!=null">parent_id = #{parentId},</if>
+            <!-- 传 null 表示不修改；需解绑资源时传资源 ID 变更或删除菜单 -->
+            <if test="resourceId!=null">resource_id = #{resourceId},</if>
+            <if test="name!=null and name!=''">name = #{name},</if>
+            <if test="icon!=null">icon = #{icon},</if>
+            <if test="url!=null">url = #{url},</if>
+            <if test="sort!=null">sort = #{sort},</if>
+            <if test="description!=null">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+    <delete id="deleteMenuById">
+        delete from t_rbac_menu where id = #{id}
+    </delete>
+    <select id="countMenuByParentId" resultType="int">
+        select count(1) from t_rbac_menu where parent_id = #{parentId}
+    </select>
+
+    <!-- ==================== 用户-组 t_rbac_user_group ==================== -->
+    <delete id="deleteUserGroupsByUserId">
+        delete from t_rbac_user_group where user_id = #{userId}
+    </delete>
+    <insert id="saveUserGroups">
+        insert into t_rbac_user_group (user_id, group_id) values
+        <foreach collection="groupIds" item="groupId" separator=",">
+            (#{userId}, #{groupId})
+        </foreach>
+    </insert>
+    <select id="listGroupIdsByUserId" resultType="long">
+        select group_id from t_rbac_user_group where user_id = #{userId} order by group_id
+    </select>
+
+    <!-- ==================== 组-角色 t_rbac_group_role ==================== -->
+    <delete id="deleteGroupRolesByGroupId">
+        delete from t_rbac_group_role where group_id = #{groupId}
+    </delete>
+    <insert id="saveGroupRoles">
+        insert into t_rbac_group_role (group_id, role_id) values
+        <foreach collection="roleIds" item="roleId" separator=",">
+            (#{groupId}, #{roleId})
+        </foreach>
+    </insert>
+    <select id="listRoleIdsByGroupId" resultType="long">
+        select role_id from t_rbac_group_role where group_id = #{groupId} order by role_id
+    </select>
+
+    <!-- ==================== 角色-权限 t_rbac_role_perm ==================== -->
+    <delete id="deleteRolePermsByRoleId">
+        delete from t_rbac_role_perm where role_id = #{roleId}
+    </delete>
+    <insert id="saveRolePerms">
+        insert into t_rbac_role_perm (role_id, perm_id) values
+        <foreach collection="permIds" item="permId" separator=",">
+            (#{roleId}, #{permId})
+        </foreach>
+    </insert>
+    <select id="listPermIdsByRoleId" resultType="long">
+        select perm_id from t_rbac_role_perm where role_id = #{roleId} order by perm_id
+    </select>
+
+    <!-- ==================== 权限-资源 t_rbac_perm_resource ==================== -->
+    <delete id="deletePermResourcesByPermId">
+        delete from t_rbac_perm_resource where perm_id = #{permId}
+    </delete>
+    <insert id="savePermResources">
+        insert into t_rbac_perm_resource (perm_id, resource_id) values
+        <foreach collection="resourceIds" item="resourceId" separator=",">
+            (#{permId}, #{resourceId})
+        </foreach>
+    </insert>
+    <select id="listResourceIdsByPermId" resultType="long">
+        select resource_id from t_rbac_perm_resource where perm_id = #{permId} order by resource_id
+    </select>
+
+    <!-- ==================== 授权查询 ==================== -->
+    <!-- 用户可访问资源：用户 → 组 → 角色 → 权限 → 资源，中间环节全部 enabled=1 -->
+    <select id="listResourcesOfUser" resultType="com.example.fcmspi.model.RbacResourceEntity">
+        select distinct r.id, r.name, r.type, r.value, r.description
+        from t_rbac_user_group ug
+                 join t_rbac_group g on g.id = ug.group_id and g.enabled = 1
+                 join t_rbac_group_role gr on gr.group_id = g.id
+                 join t_rbac_role rl on rl.id = gr.role_id and rl.enabled = 1
+                 join t_rbac_role_perm rp on rp.role_id = rl.id
+                 join t_rbac_perm p on p.id = rp.perm_id and p.enabled = 1
+                 join t_rbac_perm_resource pr on pr.perm_id = p.id
+                 join t_rbac_resource r on r.id = pr.resource_id
+        where ug.user_id = #{userId}
+        order by r.id
+    </select>
+</mapper>

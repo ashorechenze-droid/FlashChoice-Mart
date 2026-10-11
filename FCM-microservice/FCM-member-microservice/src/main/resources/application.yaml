@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: FCM-member-microservice
+  config:
+    import: nacos:common.yaml?group=FlashChoice-Mart&refreshEnabled=true
+  # ===== 激活的环境（用于拼接 Data ID） =====
+  profiles:
+    active: prod
+
+  cloud:
+    nacos:
+      config:
+        server-addr: 127.0.0.1:8848
+        username: nacos
+        password: 123456
+        namespace: ccec72ba-fee4-4a12-b8e4-f094a8a7a87e   # 如果配置在指定命名空间，需填写
+        group: FlashChoice-Mart                            # 如果配置不在 DEFAULT_GROUP，需指定
+
+      discovery:
+        server-addr: 127.0.0.1:8848
+        # 服务名（可选，默认取 spring.application.name）
+        # 是否注册到 Nacos（默认 true，取消下面注释可关闭）
+        username: nacos
+        password: 123456
+        register-enabled: true
+        group: FlashChoice-Mart
+        namespace: ccec72ba-fee4-4a12-b8e4-f094a8a7a87e
+        ip: localhost   # 本机开发：避免切换网络后 IP 变动
+        port: 20004
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      timeout: 3s
+      # Redis 访问密码（redis.conf 中 requirepass）；不配置会因 NOAUTH 导致黑名单失效
+      password: petsphere123
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+
+server:
+  port: 20004
+
+# ===== JWT 双 Token 认证（签发方；密钥与网关保持一致，建议后续统一维护到 Nacos common.yaml） =====
+fcm:
+  jwt:
+    # HS256 签名密钥（≥32 字节；签发方与网关校验方必须一致）
+    secret: FlashChoice-Mart-Jwt-Secret-2026-HS256-Key
+    issuer: flashchoice-mart
+    member:
+      access-ttl-minutes: 10080     # Access Token 有效期：7 天
+      refresh-ttl-minutes: 43200    # Refresh Token 有效期：30 天

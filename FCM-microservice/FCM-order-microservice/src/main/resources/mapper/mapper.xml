@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.fcmordermicroservice.mapper.OrderMapper">
+    <!-- 通用查询列（order 为保留字，表名须反引号） -->
+    <sql id="Base_Select">
+        select id,
+               order_no,
+               seckill_no,
+               member_account,
+               total_pay,
+               pay_type,
+               alipay_trade_no,
+               checkout_time,
+               pay_time,
+               ship_time,
+               accept_time,
+               status,
+               receiver_addr_id,
+               receiver_name,
+               receiver_phone,
+               receiver_addr_detail,
+               order_comment,
+               refund_status,
+               is_del,
+               description,
+               created_time,
+               created_by,
+               updated_time,
+               updated_by
+        from `order`
+    </sql>
+    <!-- 订单分页：关键字匹配订单号，支持状态/会员/下单时间范围过滤 -->
+    <select id="findAll" resultType="com.example.fcmspi.model.OrderEntity">
+        <include refid="Base_Select"/>
+        <where>
+            <if test="keyword!=null and keyword!=''">
+                and order_no like concat('%', #{keyword}, '%')
+            </if>
+            <if test="memberAccount!=null and memberAccount!=''">
+                and member_account = #{memberAccount}
+            </if>
+            <if test="status!=null and status!=''">
+                and status = #{status}
+            </if>
+            <if test="refundStatus!=null and refundStatus!=''">
+                and refund_status = #{refundStatus}
+            </if>
+            <if test="isDel != null">
+                and is_del = #{isDel}
+            </if>
+            <if test="beginTime!=null and beginTime!=''">
+                and created_time &gt;= #{beginTime}
+            </if>
+            <if test="endTime!=null and endTime!=''">
+                and created_time &lt;= #{endTime}
+            </if>
+        </where>
+        order by id desc
+    </select>
+    <select id="findById" resultType="com.example.fcmspi.model.OrderEntity">
+        <include refid="Base_Select"/>
+        where id = #{id}
+    </select>
+    <select id="findByOrderNo" resultType="com.example.fcmspi.model.OrderEntity">
+        <include refid="Base_Select"/>
+        where order_no = #{orderNo}
+    </select>
+    <select id="findBySeckillNo" resultType="com.example.fcmspi.model.OrderEntity">
+        <include refid="Base_Select"/>
+        where seckill_no = #{seckillNo}
+    </select>
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        insert into `order` (order_no, seckill_no, member_account, total_pay, pay_type, alipay_trade_no,
+                             checkout_time, pay_time, ship_time, accept_time, status,
+                             receiver_addr_id, receiver_name, receiver_phone, receiver_addr_detail,
+                             order_comment, refund_status, is_del, description,
+                             created_time, updated_time, created_by, updated_by)
+        values (#{orderNo}, #{seckillNo}, #{memberAccount}, #{totalPay}, #{payType}, #{alipayTradeNo},
+                #{checkoutTime}, #{payTime}, #{shipTime}, #{acceptTime}, #{status},
+                #{receiverAddrId}, #{receiverName}, #{receiverPhone}, #{receiverAddrDetail},
+                #{orderComment}, #{refundStatus}, #{isDel}, #{description},
+                #{createdTime}, #{updatedTime}, #{createdBy}, #{updatedBy})
+    </insert>
+    <!-- 状态机更新：仅更新传入的非空字段 -->
+    <update id="updateStatus">
+        update `order`
+        <set>
+            <if test="status!=null and status!=''">status = #{status},</if>
+            <if test="seckillNo!=null and seckillNo!=''">seckill_no = #{seckillNo},</if>
+            <if test="payType!=null and payType!=''">pay_type = #{payType},</if>
+            <if test="alipayTradeNo!=null and alipayTradeNo!=''">alipay_trade_no = #{alipayTradeNo},</if>
+            <if test="payTime!=null">pay_time = #{payTime},</if>
+            <if test="shipTime!=null">ship_time = #{shipTime},</if>
+            <if test="acceptTime!=null">accept_time = #{acceptTime},</if>
+            <if test="receiverName!=null and receiverName!=''">receiver_name = #{receiverName},</if>
+            <if test="receiverPhone!=null and receiverPhone!=''">receiver_phone = #{receiverPhone},</if>
+            <if test="receiverAddrDetail!=null and receiverAddrDetail!=''">receiver_addr_detail = #{receiverAddrDetail},</if>
+            <if test="refundStatus!=null and refundStatus!=''">refund_status = #{refundStatus},</if>
+            <if test="description!=null and description!=''">description = #{description},</if>
+            <if test="updatedTime!=null">updated_time = #{updatedTime},</if>
+            <if test="updatedBy!=null">updated_by = #{updatedBy},</if>
+        </set>
+        where id = #{id}
+    </update>
+    <update id="markPaid">
+        update `order` set status = '已支付', pay_type = #{payType},
+          alipay_trade_no = #{alipayTradeNo}, pay_time = #{payTime}, updated_time = #{updatedTime}
+        where id = #{id} and status = '待付款'
+    </update>
+    <update id="markCancelled">
+        update `order` set status = '已取消', updated_time = #{updatedTime}
+        where id = #{id} and status = '待付款'
+    </update>
+    <update id="deleteByIds">
+        update `order`
+        set is_del = 1
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </update>
+    <!-- 超时关单扫描：待付款超过 30 分钟的订单号（定时任务逐单关单并回补库存） -->
+    <select id="findTimeoutOrderNos" resultType="java.lang.String">
+        select order_no
+        from `order`
+        where status = '待付款'
+          and is_del = 0
+          and checkout_time &lt; DATE_SUB(now(), INTERVAL 30 MINUTE)
+    </select>
+
+    <!-- ===== order_item ===== -->
+    <select id="findItemsByOrderId" resultType="com.example.fcmspi.model.OrderItemEntity">
+        select id,
+               order_id,
+               good_id,
+               deal_price,
+               count,
+               good_name,
+               good_pic,
+               good_desc
+        from order_item
+        where order_id = #{orderId}
+        order by id
+    </select>
+    <!-- 批量装配订单明细：订单列表一次 IN 查询（管理端列表展示与分类销售统计依赖） -->
+    <select id="findItemsByOrderIds" resultType="com.example.fcmspi.model.OrderItemEntity">
+        select id,
+               order_id,
+               good_id,
+               deal_price,
+               count,
+               good_name,
+               good_pic,
+               good_desc
+        from order_item
+        where order_id in
+        <foreach collection="orderIds" item="orderId" separator="," open="(" close=")">
+            #{orderId}
+        </foreach>
+        order by id
+    </select>
+    <insert id="saveItems" useGeneratedKeys="true" keyProperty="id">
+        insert into order_item (order_id, good_id, deal_price, count, good_name, good_pic, good_desc)
+        values
+        <foreach collection="items" item="item" separator=",">
+            (#{item.orderId}, #{item.goodId}, #{item.dealPrice}, #{item.count},
+             #{item.goodName}, #{item.goodPic}, #{item.goodDesc})
+        </foreach>
+    </insert>
+</mapper>
