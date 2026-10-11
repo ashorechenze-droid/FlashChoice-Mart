@@ -32,3 +32,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local services and generated frontend files
+runlogs/
+build_order.log
+frontend/node_modules/
+frontend/dist/

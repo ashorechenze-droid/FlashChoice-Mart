@@ -2,7 +2,7 @@
     [switch]$SkipBuild,
     [switch]$SkipInfra,
     [switch]$DryRun,
-    [string]$FrontendPath = (Join-Path $PSScriptRoot '..\FlashChoiceMart-frontend\mall-web'),
+    [string]$FrontendPath = '',
     [string]$MySqlRoot = 'D:\MySQL\mysql-9.7.1-winx64',
     [string]$NacosRoot = 'D:\Nacos\nacos',
     [string]$RedisRoot = 'D:\Redis\redis-windows-8.8.0',
@@ -12,6 +12,14 @@
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = $PSScriptRoot
+if (-not $FrontendPath) {
+    $bundledFrontend = Join-Path $projectRoot 'frontend'
+    $FrontendPath = if (Test-Path -LiteralPath (Join-Path $bundledFrontend 'package.json') -PathType Leaf) {
+        $bundledFrontend
+    } else {
+        Join-Path $projectRoot '..\FlashChoiceMart-frontend\mall-web'
+    }
+}
 $frontend = [System.IO.Path]::GetFullPath($FrontendPath)
 $bundledErlang = Join-Path $projectRoot '.local\erlang27'
 if (-not $ErlangRoot) {
@@ -60,6 +68,7 @@ foreach ($name in @('java', 'npm.cmd')) {
 if (-not (Test-Path -LiteralPath $frontend -PathType Container)) {
     throw "前端目录不存在：$frontend。可通过 -FrontendPath 指定。"
 }
+Write-Host "前端目录：$frontend"
 
 if (-not $SkipInfra) {
     $mysqlExe = Join-Path $MySqlRoot 'mysql-9.7.1-winx64\bin\mysqld.exe'

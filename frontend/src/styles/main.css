@@ -1,0 +1,127 @@
+/* ============================================================
+   极速优选 · 全局主题样式（CSS Variables）
+   与单文件原型保持同一套视觉语言：深蓝主色 / 冷灰基底 / 玻璃导航 / 弹性动效
+   ============================================================ */
+:root {
+  /* 品牌色板 */
+  --brand: #2F6BFF;
+  --brand-2: #5B8CFF;
+  --brand-deep: #1B4DF5;
+  --brand-soft: rgba(47, 107, 255, .10);
+  --accent: #FF6B35;
+  --price: #FF4D4F;
+  --ok: #2EC27E;
+  --like: #FF4D6A;
+
+  /* 中性色 */
+  --bg: #F5F7FC;
+  --surface: #FFFFFF;
+  --ink: #15203A;
+  --ink-2: #5C6B84;
+  --line: rgba(21, 32, 58, .08);
+
+  /* 玻璃拟态 */
+  --glass-bg: rgba(255, 255, 255, .72);
+  --glass-border: rgba(255, 255, 255, .60);
+
+  /* 尺寸 */
+  --nav-h: 76px;
+  /* 安全区（刘海屏 / 底部手势条） */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --radius-pill: 999px;
+
+  /* 阴影 */
+  --shadow-sm: 0 4px 14px rgba(21, 32, 58, .06);
+  --shadow-md: 0 14px 34px rgba(21, 32, 58, .12);
+  --shadow-lg: 0 26px 60px rgba(21, 32, 58, .20);
+
+  /* 缓动 */
+  --elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --smooth: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* 字体 */
+  --font: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Element Plus 主题色同步 */
+  --el-color-primary: var(--brand);
+  --el-border-radius-base: 10px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+#app { min-height: 100vh; display: flex; flex-direction: column; }
+
+img { display: block; max-width: 100%; }
+a { text-decoration: none; color: inherit; }
+button { font-family: inherit; }
+
+.container { width: min(1240px, calc(100% - 48px)); margin-inline: auto; }
+
+/* 隐藏滚动条但保留滚动能力 */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* 通用区块 */
+.section { padding: 56px 0; }
+.section-head { text-align: center; margin-bottom: 26px; }
+.section-head h2 { font-size: 30px; font-weight: 800; letter-spacing: 1px; }
+.section-head p { margin-top: 6px; font-size: 14px; color: var(--ink-2); }
+
+/* 滚动入场（IntersectionObserver 触发） */
+.reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s ease, transform .7s var(--smooth); }
+.reveal.in-view { opacity: 1; transform: translateY(0); }
+
+/* 页面路由切换过渡 */
+.fade-enter-active, .fade-leave-active { transition: opacity .28s ease, transform .28s var(--smooth); }
+.fade-enter-from { opacity: 0; transform: translateY(10px); }
+.fade-leave-to { opacity: 0; }
+
+/* Element Plus 微调 */
+.el-message { font-family: var(--font); }
+
+/* 尊重系统「减弱动态效果」 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* 响应式：平板 / 手机（<1100px） */
+@media (max-width: 1100px) {
+  :root { --nav-h: 64px; } /* 导航高度联动（NavBar 与 .page padding-top） */
+  .container { width: calc(100% - 32px); }
+  .section { padding: 40px 0; }
+  .section-head h2 { font-size: 24px; }
+  /* 触屏按压反馈 */
+  .el-button:active, .chip:active, .tab-pill:active { transform: scale(.96); }
+}
+
+/* 小屏（<480px）进一步压缩字号与间距 */
+@media (max-width: 480px) {
+  :root { --nav-h: 60px; }
+  .container { width: calc(100% - 24px); }
+  .section { padding: 32px 0; }
+  .section-head { margin-bottom: 20px; }
+  .section-head h2 { font-size: 22px; }
+  .section-head p { font-size: 13px; }
+}
+
+/* 大屏（>1440px）容器加宽 */
+@media (min-width: 1440px) {
+  .container { width: min(1320px, 92vw); }
+}
